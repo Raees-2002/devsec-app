@@ -16,8 +16,7 @@ jobs:
       run: docker build -t devsec-app .
 
     - name: Install Trivy
-      run: sudo apt-get install -y trivy
-
+      run: choco install trivy -y
     - name: Run Trivy Scan (FAIL on CRITICAL/HIGH)
       run: |
         trivy image --exit-code 1 \
