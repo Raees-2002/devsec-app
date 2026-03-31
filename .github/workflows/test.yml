@@ -5,32 +5,50 @@ on:
     branches: [ "main" ]
 
 jobs:
-  build-scan:
-    name: Build and Security Scan
+  build-scan-push:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Checkout code
     - name: Checkout Repository
       uses: actions/checkout@v3
 
-    # 2. Set up Docker Buildx (best practice)
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
 
-    # 3. Build Docker image
+    # 🔹 Build Image
     - name: Build Docker Image
       run: docker build -t devsec-app .
 
-    # 4. Run Trivy Scan (Security Gate)
-    - name: Run Trivy Vulnerability Scanner
+    # 🔹 Security Scan (Gate)
+    - name: Run Trivy Scan
       uses: aquasecurity/trivy-action@master
       with:
         image-ref: devsec-app
-        format: table
         exit-code: 1
         severity: CRITICAL,HIGH
 
-    # 5. Success message
-    - name: Security Gate Passed
-      run: echo "✅ No CRITICAL/HIGH vulnerabilities found. Pipeline passed."
+    # 🔹 Configure AWS Credentials
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }}
+
+    # 🔹 Login to ECR
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v2
+
+    # 🔹 Tag Image
+    - name: Tag Docker Image
+      run: |
+        docker tag devsec-app:latest ${{ secrets.ECR_REGISTRY }}/devsec-app:latest
+
+    # 🔹 Push Image
+    - name: Push to ECR
+      run: |
+        docker push ${{ secrets.ECR_REGISTRY }}/devsec-app:latest
+
+    - name: Done
+      run: echo "🚀 Image pushed securely to ECR"
