@@ -1,4 +1,4 @@
-name: DevSecOps Pipeline
+name: DevSecOps CI Pipeline
 
 on:
   push:
@@ -6,22 +6,31 @@ on:
 
 jobs:
   build-scan:
+    name: Build and Security Scan
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Code
+    # 1. Checkout code
+    - name: Checkout Repository
       uses: actions/checkout@v3
 
+    # 2. Set up Docker Buildx (best practice)
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # 3. Build Docker image
     - name: Build Docker Image
       run: docker build -t devsec-app .
 
-    - name: Install Trivy
-      run: choco install trivy -y
-    - name: Run Trivy Scan (FAIL on CRITICAL/HIGH)
-      run: |
-        trivy image --exit-code 1 \
-        --severity CRITICAL,HIGH \
-        devsec-app
+    # 4. Run Trivy Scan (Security Gate)
+    - name: Run Trivy Vulnerability Scanner
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: devsec-app
+        format: table
+        exit-code: 1
+        severity: CRITICAL,HIGH
 
-    - name: Success Message
-      run: echo "✅ Image is secure and passed scan"
+    # 5. Success message
+    - name: Security Gate Passed
+      run: echo "✅ No CRITICAL/HIGH vulnerabilities found. Pipeline passed."
