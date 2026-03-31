@@ -1,0 +1,28 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Build Docker Image
+      run: docker build -t devsec-app .
+
+    - name: Install Trivy
+      run: sudo apt-get install -y trivy
+
+    - name: Run Trivy Scan (FAIL on CRITICAL/HIGH)
+      run: |
+        trivy image --exit-code 1 \
+        --severity CRITICAL,HIGH \
+        devsec-app
+
+    - name: Success Message
+      run: echo "✅ Image is secure and passed scan"
